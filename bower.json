@@ -1,0 +1,33 @@
+{
+    "name": "Tie-ng",
+    "version": "1.0.0",
+    "description": "Tie-ng uses TieJs and adds angular specific behavior to some form elements",
+    "main": "dist/tie-ng.min.js",
+    "keywords": [
+        "forms",
+        "validation",
+        "object-binding",
+        "javascript",
+        "angular"
+    ],
+    "authors": [
+        "Georg Henkel <georg@develman.de>",
+        "Christoph Huppertz <huppertz.chr@gmail.com>"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "jquery": ">=2.1.3",
+        "angular": ">=1.3.10",
+        "bootstrap": ">=3.3.0",
+        "mjolnic-bootstrap-colorpicker": ">=2.0.0",
+        "eonasdan-bootstrap-datetimepicker": ">=4.0.0",
+        "clockpicker": ">=0.0.7",
+        "bootstrap-wysiwyg": "",
+        "chosen": "https://github.com/harvesthq/chosen/releases/download/v1.3.0/chosen_v1.3.0.zip"
+    },
+    "ignore": [
+        "**/.*",
+        "bower_components",
+        "node_modules"
+    ]
+}
