@@ -11,7 +11,7 @@
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-angular.module("tiejs-ang", ['angular.css.injector'])
+angular.module("tie-ng", ['angular.css.injector'])
     .directive('tiejsForm', [ 'cssInjector', function (cssInjector) {
         return {
             restrict: 'E',
@@ -83,7 +83,7 @@ angular.module("tiejs-ang", ['angular.css.injector'])
                             } else if (item.fieldType === "column") {
                                 tiejsForm.addColumns(item.fieldData);
                             } else {
-                                if (console) console.log("tiejs-directive: unknown type of field (only type -field- and -column- are allowed)");
+                                if (console) console.log("tie-ng-directive: unknown type of field (only type -field- and -column- are allowed)");
                             }
 
                             // if field is color, date or time -> add it to array for init addons
