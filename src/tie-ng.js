@@ -12,7 +12,7 @@
  */
 
 angular.module("tie-ng", ['angular.css.injector'])
-    .directive('tiejsForm', [ 'cssInjector', function (cssInjector) {
+    .directive('tiejsForm', ['$compile', 'cssInjector', function ($compile, cssInjector) {
         return {
             restrict: 'E',
             scope: {
@@ -91,6 +91,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                         }
                     });
                     tiejsForm.addBindings(scope.bindings);
+
+
 
                     var i = 0;
 
@@ -224,6 +226,10 @@ angular.module("tie-ng", ['angular.css.injector'])
                     $('#' + scope.submitButtonId).on('click', function () {
                         formElem.trigger('submit');
                     });
+
+                    // add the new created form to angular scope
+                    var anguElem = element.find('form');
+                    $compile(anguElem.contents())(scope);
                 };
 
                 init(scope, element, attr);
@@ -235,6 +241,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                         init(scope, element, attr);
                     });
                 }
+
             }
 
         };
