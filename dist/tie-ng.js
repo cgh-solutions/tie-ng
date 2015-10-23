@@ -9,6 +9,7 @@
  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
  */
 
 angular.module("tie-ng", ['angular.css.injector'])
@@ -23,7 +24,17 @@ angular.module("tie-ng", ['angular.css.injector'])
                 "bindingSource": "=bindingSource",                  // object with data
                 "onSubmit": "=onSubmit",                            // onsubmit callback function
                 "submitButtonId": "@submitButtonId",                // id of submit button (needed if button is outside of the formular)
-                "reloadFlag": "=reloadFlag"                         // trigger flag to reload the hole tiejs content
+                "reloadFlag": "=reloadFlag",                        // trigger flag to reload the hole tiejs content
+                "libraryOptions": "=libraryOptions"                 // options for the different in tie-ng used libraries. possible option values
+                                                                    // typeahead: {
+                                                                    //    prepare: {
+                                                                    //        type: "POST",
+                                                                    //        contentType: "application/json; charset=UTF-8",
+                                                                    //        headers: {
+                                                                    //            "Authorization": "Bearer " + $auth.getToken()
+                                                                    //        }
+                                                                    //    }
+                                                                    // }
             },
             template: '<form></form>',
             link: function (scope, element, attr) {
@@ -213,6 +224,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                         for (i = 0; i < typeaheadElements.length; i++) {
                             var $elem = $(typeaheadElements[i]);
                             var elemData = $elem.data('elemdata');
+                            var headerData = elemData.remote.headers;
 
                             var bloodhoundOptions = {
                                 datumTokenizer: elemData.display ? Bloodhound.tokenizers.obj.whitespace(elemData.display) : Bloodhound.tokenizers.whitespace,
@@ -221,9 +233,20 @@ angular.module("tie-ng", ['angular.css.injector'])
                             };
 
                             if(elemData.remote){
-                                bloodhoundOptions.remote = {
-                                    url: elemData.remote,
-                                    wildcard: '%QUERY'
+                                bloodhoundOptions.remote = elemData.remote;
+
+                                var prep = scope.libraryOptions.typeahead.prepare;
+                                if(prep){
+                                    bloodhoundOptions.remote.prepare = function(query, settings){
+                                        var option = scope.libraryOptions.typeahead.prepare;
+
+                                        settings.type = option.type;
+                                        settings.contentType = option.contentType;
+                                        settings.headers = option.headers;
+                                        settings.data = JSON.stringify(query);
+
+                                        return settings;
+                                    }
                                 }
                             } else {
                                 bloodhoundOptions.local = elemData.local;
