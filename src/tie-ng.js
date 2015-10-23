@@ -42,6 +42,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                     var timeFieldNames = [];
                     var wysiwygFieldNames = [];
                     var tagFieldNames = [];
+                    var typeaheadFieldNames = [];
 
                     var checkIfDataHasSpecialField = function (fieldData) {
                         fieldData.forEach(function (item) {
@@ -61,6 +62,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 case "tags":
                                     addSpecifiedFieldToArray(item, tagFieldNames);
                                     break;
+                                case "typeahead":
+                                    addSpecifiedFieldToArray(item, typeaheadFieldNames);
                             }
                         });
                     };
@@ -91,7 +94,6 @@ angular.module("tie-ng", ['angular.css.injector'])
                         }
                     });
                     tiejsForm.addBindings(scope.bindings);
-
 
 
                     var i = 0;
@@ -141,7 +143,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 placement: 'bottom',
                                 align: 'left',
                                 autoclose: 'true'
-                            }).find("input").change(function() {
+                            }).find("input").change(function () {
                                 var fieldName = $(this).attr("name");
                                 scope.bindingSource[fieldName] = $(this).val();
                             });
@@ -157,7 +159,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                         for (i = 0; i < wysiwygFieldNames.length; i++) {
                             var editorpicker = $(editorPickerElements[i]).summernote({
                                 height: 400,
-                                onblur: function(event) {
+                                onblur: function (event) {
                                     var fieldName = $(event.currentTarget).parent().prev("div.wysiwyg").attr("name");
                                     scope.bindingSource[fieldName] = $(this).code();
                                 },
@@ -185,11 +187,11 @@ angular.module("tie-ng", ['angular.css.injector'])
                         for (i = 0; i < tagFieldNames.length; i++) {
                             var tagField = $(tagElements[i]).chosen({width: "100%"});
 
-                            tagField.change(function(event, changedObj){
+                            tagField.change(function (event, changedObj) {
                                 var fieldName = $(event.currentTarget).attr("name");
                                 var selectedOptions = $(event.currentTarget).find("option:selected");
-                                if(changedObj.selected){
-                                    selectedOptions.each(function(){
+                                if (changedObj.selected) {
+                                    selectedOptions.each(function () {
                                         scope.bindingSource[fieldName].push($(this).val());
                                     });
                                 } else {
@@ -202,21 +204,61 @@ angular.module("tie-ng", ['angular.css.injector'])
                         }
                     }
 
+
+                    //init typeahead addon, if typeahead field is available
+                    var typeaheads = [];
+                    if (typeaheadFieldNames.length > 0) {
+                        var typeaheadElements = formElem.find(".typeahead");
+
+                        for (i = 0; i < typeaheadElements.length; i++) {
+                            var $elem = $(typeaheadElements[i]);
+                            var elemData = $elem.data('elemdata');
+
+                            var bloodhoundOptions = {
+                                datumTokenizer: elemData.display ? Bloodhound.tokenizers.obj.whitespace(elemData.display) : Bloodhound.tokenizers.whitespace,
+                                queryTokenizer: Bloodhound.tokenizers.whitespace,
+                                prefetch: elemData.prefetch ? elemData.prefetch : null
+                            };
+
+                            if(elemData.remote){
+                                bloodhoundOptions.remote = {
+                                    url: elemData.remote,
+                                    wildcard: '%QUERY'
+                                }
+                            } else {
+                                bloodhoundOptions.local = elemData.local;
+                            }
+
+                            var bloodhound = new Bloodhound(bloodhoundOptions);
+
+
+                            var newTypeahead = $elem.typeahead(
+                                elemData.options ? elemData.options : null,
+                                {
+                                    name: $elem.attr("name"),
+                                    display: elemData.display ? elemData.display : null,
+                                    source: bloodhound,
+                                    templates: elemData.templates ? elemData.templates : null
+                                });
+                            typeaheads.push(newTypeahead);
+                        }
+                    }
+
                     // load plugin css styles
-                    if(cssInjector){
-                        if(colorPickers.length > 0){
+                    if (cssInjector) {
+                        if (colorPickers.length > 0) {
                             cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
                         }
-                        if(datePickers.length > 0){
+                        if (datePickers.length > 0) {
                             cssInjector.add("/public/js/lib/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css");
                         }
-                        if(timePickers.length > 0){
+                        if (timePickers.length > 0) {
                             cssInjector.add("/public/js/lib/clockpicker/dist/bootstrap-clockpicker.min.css");
                         }
-                        if(tagFields.length > 0){
+                        if (tagFields.length > 0) {
                             cssInjector.add("/public/js/lib/chosen/chosen.css");
                         }
-                        if(editorPickers.length > 0){
+                        if (editorPickers.length > 0) {
                             cssInjector.add("/public/js/lib/summernote/dist/summernote.css");
                         }
 
