@@ -13,7 +13,7 @@
  */
 
 angular.module("tie-ng", ['angular.css.injector'])
-    .directive('tiejsForm', ['$compile', 'cssInjector', function ($compile, cssInjector) {
+    .directive('tiejsForm', ['$compile', 'cssInjector', '$http', function ($compile, cssInjector, $http) {
         return {
             restrict: 'E',
             scope: {
@@ -215,9 +215,9 @@ angular.module("tie-ng", ['angular.css.injector'])
                         }
                     }
 
-                    function prepareTypeahead(options, settings, query) {
+                    function prepareSettings(options, settings, query) {
                         if(options.wildcard && query) {
-                            settings.url = settings.url.replace(option.wildcard, encodeURIComponent(query));
+                            settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
                         }
 
                         settings.type = options.type ? options.type : 'GET';
@@ -248,39 +248,19 @@ angular.module("tie-ng", ['angular.css.injector'])
                             if(elemData.remote){
                                 bloodhoundOptions.remote = elemData.remote;
 
-                                var prep = scope.libraryOptions.typeahead.prepare;
-                                if(prep){
+                                if(scope.libraryOptions.typeahead.prepare){
                                     bloodhoundOptions.remote.prepare = function(query, settings){
                                         var options = scope.libraryOptions.typeahead.prepare;
-
-                                        if(options.wildcard && query) {
-                                            settings.url = settings.url.replace(option.wildcard, encodeURIComponent(query));
-                                        }
-
-                                        settings.type = options.type ? options.type : 'GET';
-                                        settings.contentType = options.contentType;
-                                        settings.headers = options.headers;
-
-                                        if (query) {
-                                            settings.data = JSON.stringify(query);
-                                        }
-
-                                        return settings;
+                                        return prepareSettings(options, settings, query);
                                     }
                                 }
                             } else if(elemData.prefetch){
                                 bloodhoundOptions.prefetch = elemData.prefetch;
 
-                                var prep = scope.libraryOptions.typeahead.prepare;
-                                if(prep){
+                                if(scope.libraryOptions.typeahead.prepare){
                                     bloodhoundOptions.prefetch.prepare = function(settings){
                                         var options = scope.libraryOptions.typeahead.prepare;
-
-                                        settings.type = options.type ? options.type : 'GET';
-                                        settings.contentType = options.contentType;
-                                        settings.headers = options.headers;
-
-                                        return settings;
+                                        return prepareSettings(options, settings);
                                     }
                                 }
                             } else {
@@ -290,6 +270,16 @@ angular.module("tie-ng", ['angular.css.injector'])
                             var bloodhound = new Bloodhound(bloodhoundOptions);
                             bloodhound.initialize();
 
+                            if (elemData.prefetch && elemData.cache) {
+                                $http.get(elemData.cache).then(function (response) {
+                                    if (response.data.key != bloodhound.prefetch.thumbprint) {
+                                        bloodhound.prefetch.thumbprint = response.data.key;
+
+                                        bloodhound.clearPrefetchCache();
+                                        bloodhound.initialize(true);
+                                    }
+                                });
+                            }
 
                             var newTypeahead = $elem.typeahead(
                                 elemData.options ? elemData.options : null,
@@ -344,6 +334,5 @@ angular.module("tie-ng", ['angular.css.injector'])
                 }
 
             }
-
         };
     }]);
