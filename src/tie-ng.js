@@ -216,7 +216,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                     }
 
                     function prepareSettings(options, settings, query) {
-                        if(options.wildcard && query) {
+                        if (options.wildcard && query) {
                             settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
                         }
 
@@ -245,20 +245,21 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 queryTokenizer: Bloodhound.tokenizers.whitespace
                             };
 
-                            if(elemData.remote){
+                            // use remote, prefetch oder local data.
+                            if (elemData.remote) {
                                 bloodhoundOptions.remote = elemData.remote;
 
-                                if(scope.libraryOptions.typeahead.prepare){
-                                    bloodhoundOptions.remote.prepare = function(query, settings){
+                                if (scope.libraryOptions.typeahead.prepare) {
+                                    bloodhoundOptions.remote.prepare = function (query, settings) {
                                         var options = scope.libraryOptions.typeahead.prepare;
                                         return prepareSettings(options, settings, query);
                                     }
                                 }
-                            } else if(elemData.prefetch){
+                            } else if (elemData.prefetch) {
                                 bloodhoundOptions.prefetch = elemData.prefetch;
 
-                                if(scope.libraryOptions.typeahead.prepare){
-                                    bloodhoundOptions.prefetch.prepare = function(settings){
+                                if (scope.libraryOptions.typeahead.prepare) {
+                                    bloodhoundOptions.prefetch.prepare = function (settings) {
                                         var options = scope.libraryOptions.typeahead.prepare;
                                         return prepareSettings(options, settings);
                                     }
@@ -267,9 +268,12 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 bloodhoundOptions.local = elemData.local;
                             }
 
+
+                            // init the bloodhound engine
                             var bloodhound = new Bloodhound(bloodhoundOptions);
                             bloodhound.initialize();
 
+                            // check if the thumbprint of the cached data is actual
                             if (elemData.prefetch && elemData.cache) {
                                 $http.get(elemData.cache).then(function (response) {
                                     if (response.data.key != bloodhound.prefetch.thumbprint) {
@@ -281,13 +285,33 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 });
                             }
 
+
+                            // create typeahead object
+
+                            function getCustomTemplate(htmlTpl){
+                                var template = {};
+                                if(htmlTpl) {
+                                    if (htmlTpl.empty) {
+                                        template.empty = htmlTpl.empty;
+                                    }
+
+                                    if (htmlTpl.suggestion) {
+                                        template.suggestion = function (data) {
+                                            return eval(htmlTpl.suggestion);
+                                        }
+                                    }
+                                }
+                                return template;
+                            }
+
                             var newTypeahead = $elem.typeahead(
                                 elemData.options ? elemData.options : null,
                                 {
                                     name: $elem.attr("name"),
                                     display: elemData.display ? elemData.display : null,
+                                    displayKey: elemData.displayKey ? elemData.displayKey : null,
                                     source: bloodhound,
-                                    templates: elemData.templates ? elemData.templates : null
+                                    templates: getCustomTemplate(elemData.templateHtml)
                                 });
                             typeaheads.push(newTypeahead);
                         }
