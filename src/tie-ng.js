@@ -13,7 +13,7 @@
  */
 
 angular.module("tie-ng", ['angular.css.injector'])
-    .directive('tiejsForm', ['$compile', 'cssInjector', '$http', function ($compile, cssInjector, $http) {
+    .directive('tiejsForm', ['$compile', 'cssInjector', '$http', '$sce', function ($compile, cssInjector, $http, $sce) {
         return {
             restrict: 'E',
             scope: {
@@ -48,304 +48,347 @@ angular.module("tie-ng", ['angular.css.injector'])
                 };
 
                 var init = function (scope, element, attr) {
-                    var colorFieldNames = [];
-                    var dateFieldNames = [];
-                    var timeFieldNames = [];
-                    var wysiwygFieldNames = [];
-                    var tagFieldNames = [];
-                    var typeaheadFieldNames = [];
+                        var colorFieldNames = [];
+                        var dateFieldNames = [];
+                        var timeFieldNames = [];
+                        var wysiwygFieldNames = [];
+                        var tagFieldNames = [];
+                        var typeaheadFieldNames = [];
 
-                    var checkIfDataHasSpecialField = function (fieldData) {
-                        fieldData.forEach(function (item) {
-                            switch (item.type) {
-                                case "color":
-                                    addSpecifiedFieldToArray(item, colorFieldNames);
-                                    break;
-                                case "date":
-                                    addSpecifiedFieldToArray(item, dateFieldNames);
-                                    break;
-                                case "time":
-                                    addSpecifiedFieldToArray(item, timeFieldNames);
-                                    break;
-                                case "wysiwyg":
-                                    addSpecifiedFieldToArray(item, wysiwygFieldNames);
-                                    break;
-                                case "tags":
-                                    addSpecifiedFieldToArray(item, tagFieldNames);
-                                    break;
-                                case "typeahead":
-                                    addSpecifiedFieldToArray(item, typeaheadFieldNames);
+                        var checkIfDataHasSpecialField = function (fieldData) {
+                            fieldData.forEach(function (item) {
+                                switch (item.type) {
+                                    case "color":
+                                        addSpecifiedFieldToArray(item, colorFieldNames);
+                                        break;
+                                    case "date":
+                                        addSpecifiedFieldToArray(item, dateFieldNames);
+                                        break;
+                                    case "time":
+                                        addSpecifiedFieldToArray(item, timeFieldNames);
+                                        break;
+                                    case "wysiwyg":
+                                        addSpecifiedFieldToArray(item, wysiwygFieldNames);
+                                        break;
+                                    case "tags":
+                                        addSpecifiedFieldToArray(item, tagFieldNames);
+                                        break;
+                                    case "typeahead":
+                                        addSpecifiedFieldToArray(item, typeaheadFieldNames);
+                                }
+                            });
+                        };
+
+                        var options = {
+                            "showRequiredAsterisk": scope.showRequiredAsterisk,
+                            "formName": scope.formName,
+                            "bindingSource": scope.bindingSource,
+                            "onSubmit": scope.onSubmit
+                        };
+
+                        var formElem = element.find("form");
+                        formElem.TieJS(options);
+                        var tiejsForm = formElem.data('tiejs');
+
+                        scope.fields.forEach(function (item) {
+                            if (item.fieldData) {
+                                if (item.fieldType === "field") {
+                                    tiejsForm.addFields(item.fieldData);
+                                } else if (item.fieldType === "column") {
+                                    tiejsForm.addColumns(item.fieldData);
+                                } else {
+                                    if (console) console.log("tie-ng-directive: unknown type of field (only type -field- and -column- are allowed)");
+                                }
+
+                                // if field is color, date or time -> add it to array for init addons
+                                checkIfDataHasSpecialField(item.fieldData);
                             }
                         });
-                    };
+                        tiejsForm.addBindings(scope.bindings);
 
-                    var options = {
-                        "showRequiredAsterisk": scope.showRequiredAsterisk,
-                        "formName": scope.formName,
-                        "bindingSource": scope.bindingSource,
-                        "onSubmit": scope.onSubmit
-                    };
 
-                    var formElem = element.find("form");
-                    formElem.TieJS(options);
-                    var tiejsForm = formElem.data('tiejs');
+                        var i = 0;
 
-                    scope.fields.forEach(function (item) {
-                        if (item.fieldData) {
-                            if (item.fieldType === "field") {
-                                tiejsForm.addFields(item.fieldData);
-                            } else if (item.fieldType === "column") {
-                                tiejsForm.addColumns(item.fieldData);
-                            } else {
-                                if (console) console.log("tie-ng-directive: unknown type of field (only type -field- and -column- are allowed)");
+                        //init color picker addon, if color field is available
+                        var colorPickers = [];
+                        if (colorFieldNames.length > 0) {
+                            var colorpickerElements = formElem.find(".color");
+                            for (i = 0; i < colorFieldNames.length; i++) {
+                                var colorpicker = $(colorpickerElements[i]).colorpicker({
+                                    color: "#" + scope.bindingSource[colorFieldNames[i]]
+                                });
+                                colorpicker.on('changeColor', function (event) {
+                                    var code = event.color.toHex();
+                                    var fieldName = $(event.currentTarget).find("input").attr("name");
+                                    scope.bindingSource[fieldName] = code.replace("#", "");
+                                });
+                                colorPickers.push(colorpicker);
                             }
-
-                            // if field is color, date or time -> add it to array for init addons
-                            checkIfDataHasSpecialField(item.fieldData);
-                        }
-                    });
-                    tiejsForm.addBindings(scope.bindings);
-
-
-                    var i = 0;
-
-                    //init color picker addon, if color field is available
-                    var colorPickers = [];
-                    if (colorFieldNames.length > 0) {
-                        var colorpickerElements = formElem.find(".color");
-                        for (i = 0; i < colorFieldNames.length; i++) {
-                            var colorpicker = $(colorpickerElements[i]).colorpicker({
-                                color: "#" + scope.bindingSource[colorFieldNames[i]]
-                            });
-                            colorpicker.on('changeColor', function (event) {
-                                var code = event.color.toHex();
-                                var fieldName = $(event.currentTarget).find("input").attr("name");
-                                scope.bindingSource[fieldName] = code.replace("#", "");
-                            });
-                            colorPickers.push(colorpicker);
-                        }
-                    }
-
-                    //init date picker addon, if color field is available
-                    var datePickers = [];
-                    if (dateFieldNames.length > 0) {
-                        var datepickerElements = formElem.find(".date");
-                        for (i = 0; i < dateFieldNames.length; i++) {
-                            var datepicker = $(datepickerElements[i]).datetimepicker({
-                                locale: 'de',
-                                showTodayButton: true
-                            });
-
-                            datepicker.on('dp.change', function (event) {
-                                var fieldName = $(event.currentTarget).find("input").attr("name");
-                                scope.bindingSource[fieldName] = event.date.format("DD.MM.YYYY");
-                            });
-
-                            datePickers.push(datepicker);
-                        }
-                    }
-
-                    //init date picker addon, if color field is available
-                    var timePickers = [];
-                    if (timeFieldNames.length > 0) {
-                        var timepickerElements = formElem.find(".time");
-                        for (i = 0; i < timeFieldNames.length; i++) {
-                            var clockpicker = $(timepickerElements[i]).clockpicker({
-                                placement: 'bottom',
-                                align: 'left',
-                                autoclose: 'true'
-                            }).find("input").change(function () {
-                                var fieldName = $(this).attr("name");
-                                scope.bindingSource[fieldName] = $(this).val();
-                            });
-
-                            timePickers.push(clockpicker);
-                        }
-                    }
-
-                    //init WYSIWYG Textarea "summernote" : https://github.com/summernote/summernote  (old:)http://mindmup.github.io/bootstrap-wysiwyg/
-                    var editorPickers = [];
-                    if (wysiwygFieldNames.length > 0) {
-                        var editorPickerElements = formElem.find(".wysiwyg");
-                        for (i = 0; i < wysiwygFieldNames.length; i++) {
-                            var editorpicker = $(editorPickerElements[i]).summernote({
-                                height: 400,
-                                onblur: function (event) {
-                                    var fieldName = $(event.currentTarget).parent().prev("div.wysiwyg").attr("name");
-                                    scope.bindingSource[fieldName] = $(this).code();
-                                },
-                                toolbar: [
-                                    ['style', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
-                                    ['font', ['strikethrough']],
-                                    ['fontsize', ['fontsize']],
-                                    ['color', ['color']],
-                                    ['para', ['ul', 'ol', 'paragraph']],
-                                    ['height', ['height']],
-                                ]
-                            });
-
-                            var fieldName = $(editorPickerElements[i]).attr("name");
-                            editorpicker.code(scope.bindingSource[fieldName]);
-
-                            editorPickers.push(editorpicker);
-                        }
-                    }
-
-                    //init TAG input field https://github.com/alxlit/bootstrap-chosen
-                    var tagFields = [];
-                    if (tagFieldNames.length > 0) {
-                        var tagElements = formElem.find(".tags");
-                        for (i = 0; i < tagFieldNames.length; i++) {
-                            var tagField = $(tagElements[i]).chosen({width: "100%"});
-
-                            tagField.change(function (event, changedObj) {
-                                var fieldName = $(event.currentTarget).attr("name");
-                                var selectedOptions = $(event.currentTarget).find("option:selected");
-                                if (changedObj.selected) {
-                                    selectedOptions.each(function () {
-                                        scope.bindingSource[fieldName].push($(this).val());
-                                    });
-                                } else {
-                                    var idx = scope.bindingSource[fieldName].indexOf(changedObj.deselected);
-                                    scope.bindingSource[fieldName].splice(idx, 1);
-                                }
-                            });
-
-                            tagFields.push(tagField);
-                        }
-                    }
-
-                    function prepareSettings(options, settings, query) {
-                        if (options.wildcard && query) {
-                            settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
                         }
 
-                        settings.type = options.type ? options.type : 'GET';
-                        settings.contentType = options.contentType;
-                        settings.headers = options.headers;
+                        //init date picker addon, if color field is available
+                        var datePickers = [];
+                        if (dateFieldNames.length > 0) {
+                            var datepickerElements = formElem.find(".date");
+                            for (i = 0; i < dateFieldNames.length; i++) {
+                                var datepicker = $(datepickerElements[i]).datetimepicker({
+                                    locale: 'de',
+                                    showTodayButton: true
+                                });
 
-                        if (query) {
-                            settings.data = JSON.stringify(query);
-                        }
+                                datepicker.on('dp.change', function (event) {
+                                    var fieldName = $(event.currentTarget).find("input").attr("name");
+                                    scope.bindingSource[fieldName] = event.date.format("DD.MM.YYYY");
+                                });
 
-                        return settings;
-                    }
-
-                    //init typeahead addon, if typeahead field is available
-                    var typeaheads = [];
-                    if (typeaheadFieldNames.length > 0) {
-                        var typeaheadElements = formElem.find(".typeahead");
-
-                        for (i = 0; i < typeaheadElements.length; i++) {
-                            var $elem = $(typeaheadElements[i]);
-                            var elemData = $elem.data('elemdata');
-
-                            var bloodhoundOptions = {
-                                datumTokenizer: elemData.display ? Bloodhound.tokenizers.obj.whitespace(elemData.display) : Bloodhound.tokenizers.whitespace,
-                                queryTokenizer: Bloodhound.tokenizers.whitespace
-                            };
-
-                            // use remote, prefetch oder local data.
-                            if (elemData.remote) {
-                                bloodhoundOptions.remote = elemData.remote;
-
-                                if (scope.libraryOptions.typeahead.prepare) {
-                                    bloodhoundOptions.remote.prepare = function (query, settings) {
-                                        var options = scope.libraryOptions.typeahead.prepare;
-                                        return prepareSettings(options, settings, query);
-                                    }
-                                }
-                            } else if (elemData.prefetch) {
-                                bloodhoundOptions.prefetch = elemData.prefetch;
-
-                                if (scope.libraryOptions.typeahead.prepare) {
-                                    bloodhoundOptions.prefetch.prepare = function (settings) {
-                                        var options = scope.libraryOptions.typeahead.prepare;
-                                        return prepareSettings(options, settings);
-                                    }
-                                }
-                            } else {
-                                bloodhoundOptions.local = elemData.local;
+                                datePickers.push(datepicker);
                             }
+                        }
 
+                        //init date picker addon, if color field is available
+                        var timePickers = [];
+                        if (timeFieldNames.length > 0) {
+                            var timepickerElements = formElem.find(".time");
+                            for (i = 0; i < timeFieldNames.length; i++) {
+                                var clockpicker = $(timepickerElements[i]).clockpicker({
+                                    placement: 'bottom',
+                                    align: 'left',
+                                    autoclose: 'true'
+                                }).find("input").change(function () {
+                                    var fieldName = $(this).attr("name");
+                                    scope.bindingSource[fieldName] = $(this).val();
+                                });
 
-                            // init the bloodhound engine
-                            var bloodhound = new Bloodhound(bloodhoundOptions);
-                            bloodhound.initialize();
+                                timePickers.push(clockpicker);
+                            }
+                        }
 
-                            // check if the thumbprint of the cached data is actual
-                            if (elemData.prefetch && elemData.cache) {
-                                $http.get(elemData.cache).then(function (response) {
-                                    if (response.data.key != bloodhound.prefetch.thumbprint) {
-                                        bloodhound.prefetch.thumbprint = response.data.key;
+                        //init WYSIWYG Textarea "summernote" : https://github.com/summernote/summernote  (old:)http://mindmup.github.io/bootstrap-wysiwyg/
+                        var editorPickers = [];
+                        if (wysiwygFieldNames.length > 0) {
+                            var editorPickerElements = formElem.find(".wysiwyg");
+                            for (i = 0; i < wysiwygFieldNames.length; i++) {
+                                var editorpicker = $(editorPickerElements[i]).summernote({
+                                    height: 400,
+                                    onblur: function (event) {
+                                        var fieldName = $(event.currentTarget).parent().prev("div.wysiwyg").attr("name");
+                                        scope.bindingSource[fieldName] = $(this).code();
+                                    },
+                                    toolbar: [
+                                        ['style', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                                        ['font', ['strikethrough']],
+                                        ['fontsize', ['fontsize']],
+                                        ['color', ['color']],
+                                        ['para', ['ul', 'ol', 'paragraph']],
+                                        ['height', ['height']],
+                                    ]
+                                });
 
-                                        bloodhound.clearPrefetchCache();
-                                        bloodhound.initialize(true);
+                                var fieldName = $(editorPickerElements[i]).attr("name");
+                                editorpicker.code(scope.bindingSource[fieldName]);
+
+                                editorPickers.push(editorpicker);
+                            }
+                        }
+
+                        //init TAG input field https://github.com/alxlit/bootstrap-chosen
+                        var tagFields = [];
+                        if (tagFieldNames.length > 0) {
+                            var tagElements = formElem.find(".tags");
+                            for (i = 0; i < tagFieldNames.length; i++) {
+                                var tagField = $(tagElements[i]).chosen({width: "100%"});
+
+                                tagField.change(function (event, changedObj) {
+                                    var fieldName = $(event.currentTarget).attr("name");
+                                    var selectedOptions = $(event.currentTarget).find("option:selected");
+                                    if (changedObj.selected) {
+                                        selectedOptions.each(function () {
+                                            scope.bindingSource[fieldName].push($(this).val());
+                                        });
+                                    } else {
+                                        var idx = scope.bindingSource[fieldName].indexOf(changedObj.deselected);
+                                        scope.bindingSource[fieldName].splice(idx, 1);
                                     }
                                 });
+
+                                tagFields.push(tagField);
+                            }
+                        }
+
+                        // typeahead input field - https://twitter.github.io/typeahead.js/
+                        function prepareSettings(options, settings, query) {
+                            if (options.wildcard && query) {
+                                settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
                             }
 
+                            settings.type = options.type ? options.type : 'GET';
+                            settings.contentType = options.contentType;
+                            settings.headers = options.headers;
 
-                            // create typeahead object
+                            if (query) {
+                                settings.data = JSON.stringify(query);
+                            }
 
-                            function getCustomTemplate(htmlTpl){
-                                var template = {};
-                                if(htmlTpl) {
-                                    if (htmlTpl.empty) {
-                                        template.empty = htmlTpl.empty;
-                                    }
+                            return settings;
+                        }
 
-                                    if (htmlTpl.suggestion) {
-                                        template.suggestion = function (data) {
-                                            return eval(htmlTpl.suggestion);
+                        //init typeahead addon, if typeahead field is available
+                        var typeaheads = [];
+                        if (typeaheadFieldNames.length > 0) {
+                            var typeaheadElements = formElem.find(".typeahead");
+
+                            for (i = 0; i < typeaheadElements.length; i++) {
+                                var $elem = $(typeaheadElements[i]);
+                                var elemData = $elem.data('elemdata');
+
+                                var bloodhoundOptions = {
+                                    datumTokenizer: elemData.display ? Bloodhound.tokenizers.obj.whitespace(elemData.display) : Bloodhound.tokenizers.whitespace,
+                                    queryTokenizer: Bloodhound.tokenizers.whitespace
+                                };
+
+                                // use remote, prefetch oder local data.
+                                if (elemData.remote) {
+                                    bloodhoundOptions.remote = elemData.remote;
+
+                                    if (scope.libraryOptions.typeahead.prepare) {
+                                        bloodhoundOptions.remote.prepare = function (query, settings) {
+                                            var options = scope.libraryOptions.typeahead.prepare;
+                                            return prepareSettings(options, settings, query);
                                         }
                                     }
+                                } else if (elemData.prefetch) {
+                                    bloodhoundOptions.prefetch = elemData.prefetch;
+
+                                    if (scope.libraryOptions.typeahead.prepare) {
+                                        bloodhoundOptions.prefetch.prepare = function (settings) {
+                                            var options = scope.libraryOptions.typeahead.prepare;
+                                            return prepareSettings(options, settings);
+                                        }
+                                    }
+                                } else {
+                                    bloodhoundOptions.local = elemData.local;
                                 }
-                                return template;
+
+
+                                // init the bloodhound engine
+                                var bloodhound = new Bloodhound(bloodhoundOptions);
+                                bloodhound.initialize();
+
+                                // check if the thumbprint of the cached data is actual
+                                if (elemData.prefetch && elemData.cache) {
+                                    $http.get(elemData.cache).then(function (response) {
+                                        if (response.data.key != bloodhound.prefetch.thumbprint) {
+                                            bloodhound.prefetch.thumbprint = response.data.key;
+
+                                            bloodhound.clearPrefetchCache();
+                                            bloodhound.initialize(true);
+                                        }
+                                    });
+                                }
+
+                                // create typeahead object
+                                function getCustomTemplate(htmlTpl) {
+                                    var template = {};
+                                    if (htmlTpl) {
+                                        if (htmlTpl.empty) {
+                                            template.empty = function (data) {
+                                                return eval(htmlTpl.empty);
+                                            }
+                                        }
+
+                                        if (htmlTpl.pending) {
+                                            template.pending = function (data) {
+                                                return eval(htmlTpl.pending);
+                                            }
+                                        }
+
+                                        if (htmlTpl.suggestion) {
+                                            template.suggestion = function (data) {
+                                                return eval(htmlTpl.suggestion);
+                                            }
+                                        }
+
+                                        if (htmlTpl.header) {
+                                            template.header = function (data) {
+                                                return eval(htmlTpl.header);
+                                            }
+                                        }
+
+                                        if (htmlTpl.footer) {
+                                            template.footer = function (data) {
+                                                return eval(htmlTpl.footer);
+                                            }
+                                        }
+                                    }
+                                    return template;
+                                }
+
+                                function getDisplayLayout(display){
+                                    return function(obj){
+                                        var data = [];
+                                        var view = display.key;
+                                        display.keys.forEach(function(key){
+                                            data[key] = eval("object." + key);
+                                            view = view.replace(key, data[key]);
+                                        });
+                                    }
+                                }
+
+                                // init all configured options
+                                var additonalOptions = {
+                                    name: $elem.attr("name"),
+                                    source: bloodhound
+                                };
+                                if(elemData.limit){
+                                    additonalOptions.limit = elemData.limit;
+                                }
+                                if(elemData.async){
+                                    additonalOptions.async = elemData.async;
+                                }
+                                if(elemData.templateHtml){
+                                    additonalOptions.templates = getCustomTemplate(elemData.templateHtml)
+                                }
+                                if(elemData.display){  //TODO: not finished yet
+                                    additonalOptions.display = elemData.display  //getDisplayLayout(elemData.display)
+                                }
+
+                                // create typeahead element
+                                var newTypeahead = $elem.typeahead(
+                                    elemData.options ? elemData.options : null, additonalOptions);
+                                typeaheads.push(newTypeahead);
+                            }
+                        }
+
+                        // load plugin css styles
+                        if (cssInjector) {
+                            if (colorPickers.length > 0) {
+                                cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
+                            }
+                            if (datePickers.length > 0) {
+                                cssInjector.add("/public/js/lib/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css");
+                            }
+                            if (timePickers.length > 0) {
+                                cssInjector.add("/public/js/lib/clockpicker/dist/bootstrap-clockpicker.min.css");
+                            }
+                            if (tagFields.length > 0) {
+                                cssInjector.add("/public/js/lib/chosen/chosen.css");
+                            }
+                            if (editorPickers.length > 0) {
+                                cssInjector.add("/public/js/lib/summernote/dist/summernote.css");
                             }
 
-                            var newTypeahead = $elem.typeahead(
-                                elemData.options ? elemData.options : null,
-                                {
-                                    name: $elem.attr("name"),
-                                    display: elemData.display ? elemData.display : null,
-                                    displayKey: elemData.displayKey ? elemData.displayKey : null,
-                                    source: bloodhound,
-                                    templates: getCustomTemplate(elemData.templateHtml)
-                                });
-                            typeaheads.push(newTypeahead);
                         }
+
+                        // trigger submit from outside handler
+                        $('#' + scope.submitButtonId).on('click', function () {
+                            formElem.trigger('submit');
+                        });
+
+                        // add the new created form to angular scope
+                        var anguElem = element.find('form');
+                        $compile(anguElem.contents())(scope);
                     }
-
-                    // load plugin css styles
-                    if (cssInjector) {
-                        if (colorPickers.length > 0) {
-                            cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
-                        }
-                        if (datePickers.length > 0) {
-                            cssInjector.add("/public/js/lib/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css");
-                        }
-                        if (timePickers.length > 0) {
-                            cssInjector.add("/public/js/lib/clockpicker/dist/bootstrap-clockpicker.min.css");
-                        }
-                        if (tagFields.length > 0) {
-                            cssInjector.add("/public/js/lib/chosen/chosen.css");
-                        }
-                        if (editorPickers.length > 0) {
-                            cssInjector.add("/public/js/lib/summernote/dist/summernote.css");
-                        }
-
-                    }
-
-                    // trigger submit from outside handler
-                    $('#' + scope.submitButtonId).on('click', function () {
-                        formElem.trigger('submit');
-                    });
-
-                    // add the new created form to angular scope
-                    var anguElem = element.find('form');
-                    $compile(anguElem.contents())(scope);
-                };
+                    ;
 
                 init(scope, element, attr);
 
