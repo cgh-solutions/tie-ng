@@ -242,8 +242,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 var elemData = $elem.data('elemdata');
 
                                 var bloodhoundOptions = {
-                                    datumTokenizer: elemData.display ? Bloodhound.tokenizers.obj.whitespace(elemData.display) : Bloodhound.tokenizers.whitespace,
-                                    queryTokenizer: Bloodhound.tokenizers.whitespace
+                                    datumTokenizer: elemData.tokens ? Bloodhound.tokenizers.obj.whitespace(elemData.tokens) : Bloodhound.tokenizers.whitespace,
+                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
                                 };
 
                                 // use remote, prefetch oder local data.
@@ -292,13 +292,13 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     if (htmlTpl) {
                                         if (htmlTpl.empty) {
                                             template.empty = function (data) {
-                                                return eval(htmlTpl.empty);
+                                               return htmlTpl.empty;
                                             }
                                         }
 
                                         if (htmlTpl.pending) {
                                             template.pending = function (data) {
-                                                return eval(htmlTpl.pending);
+                                                return htmlTpl.pending;
                                             }
                                         }
 
@@ -324,14 +324,25 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 }
 
                                 function getDisplayLayout(display){
-                                    return function(obj){
-                                        var data = [];
-                                        var view = display.key;
-                                        display.keys.forEach(function(key){
-                                            data[key] = eval("object." + key);
-                                            view = view.replace(key, data[key]);
-                                        });
-                                    }
+                                    //return fuction(obj){
+                                    //    var data = "";
+                                    //
+                                    //    display.keys.forEach(function(key){
+                                    //        data += " " + eval(obj + "." + key) ;
+                                    //    });
+                                    //    return data;
+                                    //}
+
+                                    //return function(obj){
+                                    //    var data = [];
+                                    //    var view = display.key;
+                                    //    display.keys.forEach(function(key){
+                                    //        data[key] = eval(obj + "." + key);
+                                    //        view = view.replace(key, data[key]);
+                                    //    });
+                                    //
+                                    //    return view;
+                                    //}
                                 }
 
                                 // init all configured options
@@ -349,7 +360,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     additonalOptions.templates = getCustomTemplate(elemData.templateHtml)
                                 }
                                 if(elemData.display){  //TODO: not finished yet
-                                    additonalOptions.display = elemData.display  //getDisplayLayout(elemData.display)
+                                    additonalOptions.display = elemData.display //getDisplayLayout(elemData.display);
                                 }
 
                                 // create typeahead element
