@@ -258,8 +258,10 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 };
 
                                 //add identify function if minLength == 0 is allowed
-                                if(elemData.options.minLength === 0){
-                                    bloodhoundOptions.identify = function(obj) { return obj.id };
+                                if (elemData.options.minLength === 0) {
+                                    bloodhoundOptions.identify = function (obj) {
+                                        return obj.id
+                                    };
                                 }
 
                                 // use remote, prefetch oder local data.
@@ -340,12 +342,12 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 }
 
                                 function getDisplayLayout(display) {
-                                    return function(obj){
+                                    return function (obj) {
                                         var data = [];
                                         var view = display.style;
-                                        display.items.forEach(function(item){
+                                        display.items.forEach(function (item) {
                                             data[item] = eval("obj." + item);
-                                            view = view.replace(item,  data[item]);
+                                            view = view.replace(item, data[item]);
                                         });
 
                                         return view;
@@ -384,6 +386,30 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 var newTypeahead = $elem.typeahead(
                                     elemData.options ? elemData.options : null, additonalOptions);
                                 typeaheads.push(newTypeahead);
+
+                                // set inital value from scope with correct format
+                                var source = scope.bindingSource[$elem.attr("name")];
+                                if (source) {
+                                    var view = "";
+                                    if (elemData.display) {
+                                        var data = [];
+                                        view = elemData.display.style;
+                                        elemData.display.items.forEach(function (item) {
+                                            data[item] = source[item];
+                                            view = view.replace(item, data[item]);
+                                        });
+                                    } else {
+                                        view = source;
+                                    }
+
+                                    newTypeahead.val(view).trigger('change');
+                                }
+
+                                // add typeahead event listeners
+                                newTypeahead.bind('typeahead:select', function (e, selectedObject) {
+                                    scope.bindingSource[$(this).attr("name")] = selectedObject;
+                                });
+
 
                             }
                         }
