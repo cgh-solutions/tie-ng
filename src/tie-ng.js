@@ -38,6 +38,7 @@ angular.module("tie-ng", ['angular.css.injector'])
             },
             template: '<form></form>',
             link: function (scope, element, attr) {
+                var self = this;
 
                 var addSpecifiedFieldToArray = function (item, array) {
                     scope.bindings.forEach(function (bindingData) {
@@ -109,7 +110,8 @@ angular.module("tie-ng", ['angular.css.injector'])
 
                         var i = 0;
 
-                        //init color picker addon, if color field is available
+                        // init color picker addon, if color field is available
+                        // ------------------------------------------------------------------------------------
                         var colorPickers = [];
                         if (colorFieldNames.length > 0) {
                             var colorpickerElements = formElem.find(".color");
@@ -126,7 +128,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                             }
                         }
 
-                        //init date picker addon, if color field is available
+                        // init date picker addon, if color field is available
+                        // ------------------------------------------------------------------------------------
                         var datePickers = [];
                         if (dateFieldNames.length > 0) {
                             var datepickerElements = formElem.find(".date");
@@ -163,7 +166,9 @@ angular.module("tie-ng", ['angular.css.injector'])
                             }
                         }
 
-                        //init WYSIWYG Textarea "summernote" : https://github.com/summernote/summernote  (old:)http://mindmup.github.io/bootstrap-wysiwyg/
+                        // init WYSIWYG Textarea "summernote" : https://github.com/summernote/summernote
+                        // (old:)http://mindmup.github.io/bootstrap-wysiwyg/
+                        // ------------------------------------------------------------------------------------
                         var editorPickers = [];
                         if (wysiwygFieldNames.length > 0) {
                             var editorPickerElements = formElem.find(".wysiwyg");
@@ -191,7 +196,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                             }
                         }
 
-                        //init TAG input field https://github.com/alxlit/bootstrap-chosen
+                        // init TAG input field https://github.com/alxlit/bootstrap-chosen
+                        // ------------------------------------------------------------------------------------
                         var tagFields = [];
                         if (tagFieldNames.length > 0) {
                             var tagElements = formElem.find(".tags");
@@ -216,6 +222,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                         }
 
                         // typeahead input field - https://twitter.github.io/typeahead.js/
+                        // ------------------------------------------------------------------------------------
                         function prepareSettings(options, settings, query) {
                             if (options.wildcard && query) {
                                 settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
@@ -232,8 +239,10 @@ angular.module("tie-ng", ['angular.css.injector'])
                             return settings;
                         }
 
-                        //init typeahead addon, if typeahead field is available
+
+                        // here starts the initialization
                         var typeaheads = [];
+                        var bloodhounds = [];
                         if (typeaheadFieldNames.length > 0) {
                             var typeaheadElements = formElem.find(".typeahead");
 
@@ -242,9 +251,16 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 var elemData = $elem.data('elemdata');
 
                                 var bloodhoundOptions = {
-                                    datumTokenizer: elemData.tokens ? Bloodhound.tokenizers.obj.whitespace(elemData.tokens) : Bloodhound.tokenizers.whitespace,
+                                    datumTokenizer: elemData.tokens ?
+                                        Bloodhound.tokenizers.obj.whitespace(elemData.tokens) :
+                                        Bloodhound.tokenizers.whitespace,
                                     queryTokenizer: Bloodhound.tokenizers.whitespace,
                                 };
+
+                                //add identify function if minLength == 0 is allowed
+                                if(elemData.options.minLength === 0){
+                                    bloodhoundOptions.identify = function(obj) { return obj.id };
+                                }
 
                                 // use remote, prefetch oder local data.
                                 if (elemData.remote) {
@@ -271,20 +287,20 @@ angular.module("tie-ng", ['angular.css.injector'])
 
 
                                 // init the bloodhound engine
-                                var bloodhound = new Bloodhound(bloodhoundOptions);
-                                bloodhound.initialize();
+                                bloodhounds[$elem.attr("name")] = new Bloodhound(bloodhoundOptions);
+                                bloodhounds[$elem.attr("name")].initialize();
 
                                 // check if the thumbprint of the cached data is actual
-                                if (elemData.prefetch && elemData.cache) {
-                                    $http.get(elemData.cache).then(function (response) {
-                                        if (response.data.key != bloodhound.prefetch.thumbprint) {
-                                            bloodhound.prefetch.thumbprint = response.data.key;
-
-                                            bloodhound.clearPrefetchCache();
-                                            bloodhound.initialize(true);
-                                        }
-                                    });
-                                }
+                                //if (elemData.prefetch && elemData.cache) {
+                                //    $http.get(elemData.cache).then(function (response) {
+                                //        if (response.data.key != bloodhound.prefetch.thumbprint) {
+                                //            bloodhound.prefetch.thumbprint = response.data.key;
+                                //
+                                //            bloodhound.clearPrefetchCache();
+                                //            bloodhound.initialize(true);
+                                //        }
+                                //    });
+                                //}
 
                                 // create typeahead object
                                 function getCustomTemplate(htmlTpl) {
@@ -292,7 +308,7 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     if (htmlTpl) {
                                         if (htmlTpl.empty) {
                                             template.empty = function (data) {
-                                               return htmlTpl.empty;
+                                                return htmlTpl.empty;
                                             }
                                         }
 
@@ -323,54 +339,57 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     return template;
                                 }
 
-                                function getDisplayLayout(display){
-                                    //return fuction(obj){
-                                    //    var data = "";
-                                    //
-                                    //    display.keys.forEach(function(key){
-                                    //        data += " " + eval(obj + "." + key) ;
-                                    //    });
-                                    //    return data;
-                                    //}
+                                function getDisplayLayout(display) {
+                                    return function(obj){
+                                        var data = [];
+                                        var view = display.style;
+                                        display.items.forEach(function(item){
+                                            data[item] = eval("obj." + item);
+                                            view = view.replace(item,  data[item]);
+                                        });
 
-                                    //return function(obj){
-                                    //    var data = [];
-                                    //    var view = display.key;
-                                    //    display.keys.forEach(function(key){
-                                    //        data[key] = eval(obj + "." + key);
-                                    //        view = view.replace(key, data[key]);
-                                    //    });
-                                    //
-                                    //    return view;
-                                    //}
+                                        return view;
+                                    }
                                 }
+
+                                function getSearchValOrAllIfKeyIsNull(q, sync, test, test2, test3) {
+                                    var bloodhound = bloodhounds[$(this).attr("name")];
+                                    if (q === '') {
+                                        sync(bloodhound.all());
+                                    } else {
+                                        bloodhound.search(q, sync);
+                                    }
+                                }
+
 
                                 // init all configured options
                                 var additonalOptions = {
                                     name: $elem.attr("name"),
-                                    source: bloodhound
+                                    source: elemData.options.minLength === 0 ? getSearchValOrAllIfKeyIsNull : bloodhounds[$elem.attr("name")] //bloodhound
                                 };
-                                if(elemData.limit){
+                                if (elemData.limit) {
                                     additonalOptions.limit = elemData.limit;
                                 }
-                                if(elemData.async){
+                                if (elemData.async) {
                                     additonalOptions.async = elemData.async;
                                 }
-                                if(elemData.templateHtml){
+                                if (elemData.templateHtml) {
                                     additonalOptions.templates = getCustomTemplate(elemData.templateHtml)
                                 }
-                                if(elemData.display){  //TODO: not finished yet
-                                    additonalOptions.display = elemData.display //getDisplayLayout(elemData.display);
+                                if (elemData.display) {
+                                    additonalOptions.display = getDisplayLayout(elemData.display);
                                 }
 
                                 // create typeahead element
                                 var newTypeahead = $elem.typeahead(
                                     elemData.options ? elemData.options : null, additonalOptions);
                                 typeaheads.push(newTypeahead);
+
                             }
                         }
 
                         // load plugin css styles
+                        // ------------------------------------------------------------------------------------
                         if (cssInjector) {
                             if (colorPickers.length > 0) {
                                 cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
