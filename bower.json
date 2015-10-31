@@ -1,6 +1,6 @@
 {
     "name": "Tie-ng",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "description": "Tie-ng uses TieJs and adds angular specific behavior to some form elements",
     "main": "dist/tie-ng.min.js",
     "keywords": [

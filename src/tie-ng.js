@@ -246,10 +246,9 @@ angular.module("tie-ng", ['angular.css.injector'])
                         if (typeaheadFieldNames.length > 0) {
                             var typeaheadElements = formElem.find(".typeahead");
 
-                            for (i = 0; i < typeaheadElements.length; i++) {
-                                var $elem = $(typeaheadElements[i]);
-                                var elemData = $elem.data('elemdata');
-
+                            // create bloodhound options object
+                            // ---------------------------------
+                            function createBloodhoundOptions($elem, elemData){
                                 var bloodhoundOptions = {
                                     datumTokenizer: elemData.tokens ?
                                         Bloodhound.tokenizers.obj.whitespace(elemData.tokens) :
@@ -287,84 +286,12 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     bloodhoundOptions.local = elemData.local;
                                 }
 
+                                return bloodhoundOptions;
+                            }
 
-                                // init the bloodhound engine
-                                bloodhounds[$elem.attr("name")] = new Bloodhound(bloodhoundOptions);
-                                bloodhounds[$elem.attr("name")].initialize();
-
-                                // check if the thumbprint of the cached data is actual
-                                //if (elemData.prefetch && elemData.cache) {
-                                //    $http.get(elemData.cache).then(function (response) {
-                                //        if (response.data.key != bloodhound.prefetch.thumbprint) {
-                                //            bloodhound.prefetch.thumbprint = response.data.key;
-                                //
-                                //            bloodhound.clearPrefetchCache();
-                                //            bloodhound.initialize(true);
-                                //        }
-                                //    });
-                                //}
-
-                                // create typeahead object
-                                function getCustomTemplate(htmlTpl) {
-                                    var template = {};
-                                    if (htmlTpl) {
-                                        if (htmlTpl.empty) {
-                                            template.empty = function (data) {
-                                                return htmlTpl.empty;
-                                            }
-                                        }
-
-                                        if (htmlTpl.pending) {
-                                            template.pending = function (data) {
-                                                return htmlTpl.pending;
-                                            }
-                                        }
-
-                                        if (htmlTpl.suggestion) {
-                                            template.suggestion = function (data) {
-                                                return eval(htmlTpl.suggestion);
-                                            }
-                                        }
-
-                                        if (htmlTpl.header) {
-                                            template.header = function (data) {
-                                                return eval(htmlTpl.header);
-                                            }
-                                        }
-
-                                        if (htmlTpl.footer) {
-                                            template.footer = function (data) {
-                                                return eval(htmlTpl.footer);
-                                            }
-                                        }
-                                    }
-                                    return template;
-                                }
-
-                                function getDisplayLayout(display) {
-                                    return function (obj) {
-                                        var data = [];
-                                        var view = display.style;
-                                        display.items.forEach(function (item) {
-                                            data[item] = eval("obj." + item);
-                                            view = view.replace(item, data[item]);
-                                        });
-
-                                        return view;
-                                    }
-                                }
-
-                                function getSearchValOrAllIfKeyIsNull(q, sync, test, test2, test3) {
-                                    var bloodhound = bloodhounds[$(this).attr("name")];
-                                    if (q === '') {
-                                        sync(bloodhound.all());
-                                    } else {
-                                        bloodhound.search(q, sync);
-                                    }
-                                }
-
-
-                                // init all configured options
+                            // create optional options for typeahead
+                            // ---------------------------------
+                            function createAdditionalOptions(){
                                 var additonalOptions = {
                                     name: $elem.attr("name"),
                                     source: elemData.options.minLength === 0 ? getSearchValOrAllIfKeyIsNull : bloodhounds[$elem.attr("name")] //bloodhound
@@ -382,34 +309,148 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     additonalOptions.display = getDisplayLayout(elemData.display);
                                 }
 
+                                return additonalOptions;
+                            }
+
+                            // create the different template views
+                            // ---------------------------------
+                            function getCustomTemplate(htmlTpl) {
+                                var template = {};
+                                if (htmlTpl) {
+                                    if (htmlTpl.empty) {
+                                        template.empty = function (data) {
+                                            return htmlTpl.empty;
+                                        }
+                                    }
+
+                                    if (htmlTpl.pending) {
+                                        template.pending = function (data) {
+                                            return htmlTpl.pending;
+                                        }
+                                    }
+
+                                    if (htmlTpl.suggestion) {
+                                        template.suggestion = function (data) {
+                                            return eval(htmlTpl.suggestion);
+                                        }
+                                    }
+
+                                    if (htmlTpl.header) {
+                                        template.header = function (data) {
+                                            return eval(htmlTpl.header);
+                                        }
+                                    }
+
+                                    if (htmlTpl.footer) {
+                                        template.footer = function (data) {
+                                            return eval(htmlTpl.footer);
+                                        }
+                                    }
+                                }
+                                return template;
+                            }
+
+                            // format display values
+                            // ---------------------------------
+                            function getDisplayLayout(display) {
+                                return function (obj) {
+                                    var data = [];
+                                    var view = display.style;
+                                    display.items.forEach(function (item) {
+                                        data[item] = eval("obj." + item);
+                                        view = view.replace(item, data[item]);
+                                    });
+
+                                    return view;
+                                }
+                            }
+
+                            // get default values if no search key selected and minLength 0 is allowed
+                            // ---------------------------------
+                            function getSearchValOrAllIfKeyIsNull(q, sync) {
+                                var bloodhound = bloodhounds[$(this).attr("name")];
+                                if (q === '') {
+                                    sync(bloodhound.all());
+                                } else {
+                                    bloodhound.search(q, sync);
+                                }
+                            }
+
+                            // set init value to input field
+                            function setValueToTypeaheadInput($elem, elemData){
+                                function getBindingName(bindings) {
+                                    var curBinding = null;
+                                    bindings.forEach(function (binding) {
+                                        curBinding = binding[$elem.attr("name")];
+                                        if (curBinding) {
+                                            return curBinding;
+                                        }
+                                    });
+                                    return curBinding;
+                                }
+
+                                function getBindingObj(bindingName) {
+                                    var tmp = "scope.bindingSource." + bindingName;
+                                    return eval(tmp);
+                                }
+
+                                var bindingName = getBindingName(scope.bindings);
+                                var bindingObj = getBindingObj(bindingName);
+                                var view = "";
+
+                                if (elemData.display) {
+                                    var data = [];
+                                    view = elemData.display.style;
+                                    elemData.display.items.forEach(function (item) {
+                                        data[item] = bindingObj[item];
+                                        view = view.replace(item, data[item]);
+                                    });
+                                } else {
+                                    view = bindingObj[elemData.display];
+                                }
+                                newTypeahead.typeahead('val', view);
+                            }
+
+
+                            // create all typeahead objects
+                            for (i = 0; i < typeaheadElements.length; i++) {
+                                var $elem = $(typeaheadElements[i]);
+                                var elemData = $elem.data('elemdata');
+
+                               var bloodhoundOptions = createBloodhoundOptions($elem, elemData);
+
+                                // init the bloodhound engine
+                                bloodhounds[$elem.attr("name")] = new Bloodhound(bloodhoundOptions);
+                                bloodhounds[$elem.attr("name")].initialize();
+
+                                // check if the thumbprint of the cached data is actual
+                                //if (elemData.prefetch && elemData.cache) {
+                                //    $http.get(elemData.cache).then(function (response) {
+                                //        if (response.data.key != bloodhound.prefetch.thumbprint) {
+                                //            bloodhound.prefetch.thumbprint = response.data.key;
+                                //
+                                //            bloodhound.clearPrefetchCache();
+                                //            bloodhound.initialize(true);
+                                //        }
+                                //    });
+                                //}
+
+
+                                // init all configured options
+                                var additonalOptions = createAdditionalOptions();
+
                                 // create typeahead element
                                 var newTypeahead = $elem.typeahead(
                                     elemData.options ? elemData.options : null, additonalOptions);
                                 typeaheads.push(newTypeahead);
 
                                 // set inital value from scope with correct format
-                                var source = scope.bindingSource[$elem.attr("name")];
-                                if (source) {
-                                    var view = "";
-                                    if (elemData.display) {
-                                        var data = [];
-                                        view = elemData.display.style;
-                                        elemData.display.items.forEach(function (item) {
-                                            data[item] = source[item];
-                                            view = view.replace(item, data[item]);
-                                        });
-                                    } else {
-                                        view = source;
-                                    }
-
-                                    newTypeahead.val(view).trigger('change');
-                                }
+                               setValueToTypeaheadInput($elem, elemData);
 
                                 // add typeahead event listeners
                                 newTypeahead.bind('typeahead:select', function (e, selectedObject) {
                                     scope.bindingSource[$(this).attr("name")] = selectedObject;
                                 });
-
 
                             }
                         }
