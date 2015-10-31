@@ -504,6 +504,11 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     $(this).typeahead('val', '');
                                 }
                             });
+
+                            // clear Input field on Broadcast
+                            $scope.$on('calendarCtrl.calendar.refetchEvents', function(event, args) {
+                                // TODO: load query typeahead element and set value to ""
+                            });
                         }
                     }
 
