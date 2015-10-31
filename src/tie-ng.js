@@ -467,15 +467,15 @@ angular.module("tie-ng", ['angular.css.injector'])
                             bloodhounds[$elem.attr("name")].initialize();
 
                             // check if the thumbprint of the cached data is actual
-                            //if (elemData.prefetch && elemData.cache) {
+                            // if (elemData.prefetch && elemData.cache) {
                             //    $http.get(elemData.cache).then(function (response) {
-                            //        if (response.data.key != bloodhound.prefetch.thumbprint) {
-                            //            bloodhound.prefetch.thumbprint = response.data.key;
+                            //       if (response.data.key != bloodhound.prefetch.thumbprint) {
+                            //          bloodhound.prefetch.thumbprint = response.data.key;
                             //
-                            //            bloodhound.clearPrefetchCache();
-                            //            bloodhound.initialize(true);
-                            //        }
-                            //    });
+                            //          bloodhound.clearPrefetchCache();
+                            //          bloodhound.initialize(true);
+                            //      }
+                            //});
                             //}
 
 
@@ -497,6 +497,13 @@ angular.module("tie-ng", ['angular.css.injector'])
                                 obj.parentObj[obj.childName] = selectedObject;
                             });
 
+                            newTypeahead.on('focus', function () {
+                                if ($(this).typeahead('val') === '') {
+                                    $(this).typeahead('val', '_');
+                                    $(this).typeahead('open');
+                                    $(this).typeahead('val', '');
+                                }
+                            });
                         }
                     }
 
