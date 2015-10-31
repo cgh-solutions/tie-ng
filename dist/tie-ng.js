@@ -49,443 +49,489 @@ angular.module("tie-ng", ['angular.css.injector'])
                 };
 
                 var init = function (scope, element, attr) {
-                        var colorFieldNames = [];
-                        var dateFieldNames = [];
-                        var timeFieldNames = [];
-                        var wysiwygFieldNames = [];
-                        var tagFieldNames = [];
-                        var typeaheadFieldNames = [];
+                    var colorFieldNames = [];
+                    var dateFieldNames = [];
+                    var timeFieldNames = [];
+                    var wysiwygFieldNames = [];
+                    var tagFieldNames = [];
+                    var typeaheadFieldNames = [];
 
-                        var checkIfDataHasSpecialField = function (fieldData) {
-                            fieldData.forEach(function (item) {
-                                switch (item.type) {
-                                    case "color":
-                                        addSpecifiedFieldToArray(item, colorFieldNames);
-                                        break;
-                                    case "date":
-                                        addSpecifiedFieldToArray(item, dateFieldNames);
-                                        break;
-                                    case "time":
-                                        addSpecifiedFieldToArray(item, timeFieldNames);
-                                        break;
-                                    case "wysiwyg":
-                                        addSpecifiedFieldToArray(item, wysiwygFieldNames);
-                                        break;
-                                    case "tags":
-                                        addSpecifiedFieldToArray(item, tagFieldNames);
-                                        break;
-                                    case "typeahead":
-                                        addSpecifiedFieldToArray(item, typeaheadFieldNames);
-                                }
-                            });
-                        };
-
-                        var options = {
-                            "showRequiredAsterisk": scope.showRequiredAsterisk,
-                            "formName": scope.formName,
-                            "bindingSource": scope.bindingSource,
-                            "onSubmit": scope.onSubmit
-                        };
-
-                        var formElem = element.find("form");
-                        formElem.TieJS(options);
-                        var tiejsForm = formElem.data('tiejs');
-
-                        scope.fields.forEach(function (item) {
-                            if (item.fieldData) {
-                                if (item.fieldType === "field") {
-                                    tiejsForm.addFields(item.fieldData);
-                                } else if (item.fieldType === "column") {
-                                    tiejsForm.addColumns(item.fieldData);
-                                } else {
-                                    if (console) console.log("tie-ng-directive: unknown type of field (only type -field- and -column- are allowed)");
-                                }
-
-                                // if field is color, date or time -> add it to array for init addons
-                                checkIfDataHasSpecialField(item.fieldData);
+                    // binding parse function
+                    // if binding source is an child obj, parse path name and return object
+                    // exp: bindingsource.model.child -> return bindingsource.model as parent and child as childname
+                    // get value of child: parent[child]
+                    var getBindingName = function ($elem, bindings) {
+                        var curBinding = null;
+                        bindings.forEach(function (binding) {
+                            curBinding = binding[$elem.attr("name")];
+                            if (curBinding) {
+                                return curBinding;
                             }
                         });
-                        tiejsForm.addBindings(scope.bindings);
+                        return curBinding;
+                    };
 
+                    var getBindingObj = function (bindingName) {
+                        var tmp = "scope.bindingSource";
+                        if (bindingName !== "") {
+                            tmp += "." + bindingName;
+                        }
+                        return eval(tmp);
+                    };
 
-                        var i = 0;
+                    var getParentBindingObj = function (bindingName) {
+                        var namespace = "";
 
-                        // init color picker addon, if color field is available
-                        // ------------------------------------------------------------------------------------
-                        var colorPickers = [];
-                        if (colorFieldNames.length > 0) {
-                            var colorpickerElements = formElem.find(".color");
-                            for (i = 0; i < colorFieldNames.length; i++) {
-                                var colorpicker = $(colorpickerElements[i]).colorpicker({
-                                    color: "#" + scope.bindingSource[colorFieldNames[i]]
-                                });
-                                colorpicker.on('changeColor', function (event) {
-                                    var code = event.color.toHex();
-                                    var fieldName = $(event.currentTarget).find("input").attr("name");
-                                    scope.bindingSource[fieldName] = code.replace("#", "");
-                                });
-                                colorPickers.push(colorpicker);
-                            }
+                        if (bindingName.indexOf('.') != -1) {
+                            var lastPointIdx = bindingName.lastIndexOf('.');
+                            namespace = bindingName.substr(0, lastPointIdx);
+                            bindingName = bindingName.substr(lastPointIdx + 1);
                         }
 
-                        // init date picker addon, if color field is available
-                        // ------------------------------------------------------------------------------------
-                        var datePickers = [];
-                        if (dateFieldNames.length > 0) {
-                            var datepickerElements = formElem.find(".date");
-                            for (i = 0; i < dateFieldNames.length; i++) {
-                                var datepicker = $(datepickerElements[i]).datetimepicker({
-                                    locale: 'de',
-                                    showTodayButton: true
-                                });
-
-                                datepicker.on('dp.change', function (event) {
-                                    var fieldName = $(event.currentTarget).find("input").attr("name");
-                                    scope.bindingSource[fieldName] = event.date.format("DD.MM.YYYY");
-                                });
-
-                                datePickers.push(datepicker);
-                            }
+                        var tmp = getBindingObj(namespace);
+                        return {
+                            parentObj: tmp,
+                            childName: bindingName
                         }
+                    };
 
-                        //init date picker addon, if color field is available
-                        var timePickers = [];
-                        if (timeFieldNames.length > 0) {
-                            var timepickerElements = formElem.find(".time");
-                            for (i = 0; i < timeFieldNames.length; i++) {
-                                var clockpicker = $(timepickerElements[i]).clockpicker({
-                                    placement: 'bottom',
-                                    align: 'left',
-                                    autoclose: 'true'
-                                }).find("input").change(function () {
-                                    var fieldName = $(this).attr("name");
-                                    scope.bindingSource[fieldName] = $(this).val();
-                                });
 
-                                timePickers.push(clockpicker);
+                    var checkIfDataHasSpecialField = function (fieldData) {
+                        fieldData.forEach(function (item) {
+                            switch (item.type) {
+                                case "color":
+                                    addSpecifiedFieldToArray(item, colorFieldNames);
+                                    break;
+                                case "date":
+                                    addSpecifiedFieldToArray(item, dateFieldNames);
+                                    break;
+                                case "time":
+                                    addSpecifiedFieldToArray(item, timeFieldNames);
+                                    break;
+                                case "wysiwyg":
+                                    addSpecifiedFieldToArray(item, wysiwygFieldNames);
+                                    break;
+                                case "tags":
+                                    addSpecifiedFieldToArray(item, tagFieldNames);
+                                    break;
+                                case "typeahead":
+                                    addSpecifiedFieldToArray(item, typeaheadFieldNames);
                             }
+                        });
+                    };
+
+                    var options = {
+                        "showRequiredAsterisk": scope.showRequiredAsterisk,
+                        "formName": scope.formName,
+                        "bindingSource": scope.bindingSource,
+                        "onSubmit": scope.onSubmit
+                    };
+
+                    var formElem = element.find("form");
+                    formElem.TieJS(options);
+                    var tiejsForm = formElem.data('tiejs');
+
+                    scope.fields.forEach(function (item) {
+                        if (item.fieldData) {
+                            if (item.fieldType === "field") {
+                                tiejsForm.addFields(item.fieldData);
+                            } else if (item.fieldType === "column") {
+                                tiejsForm.addColumns(item.fieldData);
+                            } else {
+                                if (console) console.log("tie-ng-directive: unknown type of field (only type -field- and -column- are allowed)");
+                            }
+
+                            // if field is color, date or time -> add it to array for init addons
+                            checkIfDataHasSpecialField(item.fieldData);
                         }
+                    });
+                    tiejsForm.addBindings(scope.bindings);
 
-                        // init WYSIWYG Textarea "summernote" : https://github.com/summernote/summernote
-                        // (old:)http://mindmup.github.io/bootstrap-wysiwyg/
-                        // ------------------------------------------------------------------------------------
-                        var editorPickers = [];
-                        if (wysiwygFieldNames.length > 0) {
-                            var editorPickerElements = formElem.find(".wysiwyg");
-                            for (i = 0; i < wysiwygFieldNames.length; i++) {
-                                var editorpicker = $(editorPickerElements[i]).summernote({
-                                    height: 400,
-                                    onblur: function (event) {
-                                        var fieldName = $(event.currentTarget).parent().prev("div.wysiwyg").attr("name");
-                                        scope.bindingSource[fieldName] = $(this).code();
-                                    },
-                                    toolbar: [
-                                        ['style', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
-                                        ['font', ['strikethrough']],
-                                        ['fontsize', ['fontsize']],
-                                        ['color', ['color']],
-                                        ['para', ['ul', 'ol', 'paragraph']],
-                                        ['height', ['height']],
-                                    ]
-                                });
 
-                                var fieldName = $(editorPickerElements[i]).attr("name");
-                                editorpicker.code(scope.bindingSource[fieldName]);
+                    var i = 0;
 
-                                editorPickers.push(editorpicker);
-                            }
+                    // init color picker addon, if color field is available
+                    // http://mjolnic.com/bootstrap-colorpicker/
+                    // ------------------------------------------------------------------------------------
+                    var colorPickers = [];
+                    if (colorFieldNames.length > 0) {
+                        var colorpickerElements = formElem.find(".color");
+                        for (i = 0; i < colorFieldNames.length; i++) {
+                            var colorpicker = $(colorpickerElements[i]).colorpicker({
+                                color: scope.bindingSource[colorFieldNames[i]],
+                                format: "hex"
+                            });
+                            colorpicker.on('changeColor', function (event) {
+                                var code = event.color.toHex();
+                                var fieldName = $(event.currentTarget).find("input").attr("name");
+                                scope.bindingSource[fieldName] = code;
+                            });
+                            colorPickers.push(colorpicker);
                         }
+                    }
 
-                        // init TAG input field https://github.com/alxlit/bootstrap-chosen
-                        // ------------------------------------------------------------------------------------
-                        var tagFields = [];
-                        if (tagFieldNames.length > 0) {
-                            var tagElements = formElem.find(".tags");
-                            for (i = 0; i < tagFieldNames.length; i++) {
-                                var tagField = $(tagElements[i]).chosen({width: "100%"});
+                    // init date picker addon, if date field is available
+                    // https://github.com/Eonasdan/bootstrap-datetimepicker
+                    // ------------------------------------------------------------------------------------
+                    var datePickers = [];
+                    if (dateFieldNames.length > 0) {
+                        var datepickerElements = formElem.find(".date");
+                        for (i = 0; i < dateFieldNames.length; i++) {
+                            var datepicker = $(datepickerElements[i]).datetimepicker({
+                                locale: 'de',
+                                showTodayButton: true
+                            });
 
-                                tagField.change(function (event, changedObj) {
-                                    var fieldName = $(event.currentTarget).attr("name");
-                                    var selectedOptions = $(event.currentTarget).find("option:selected");
-                                    if (changedObj.selected) {
-                                        selectedOptions.each(function () {
-                                            scope.bindingSource[fieldName].push($(this).val());
-                                        });
-                                    } else {
-                                        var idx = scope.bindingSource[fieldName].indexOf(changedObj.deselected);
-                                        scope.bindingSource[fieldName].splice(idx, 1);
-                                    }
-                                });
+                            datepicker.on('dp.change', function (event) {
+                                var fieldName = $(event.currentTarget).find("input").attr("name");
+                                scope.bindingSource[fieldName] = event.date.format("DD.MM.YYYY");
+                            });
 
-                                tagFields.push(tagField);
-                            }
+                            datePickers.push(datepicker);
                         }
+                    }
 
-                        // typeahead input field - https://twitter.github.io/typeahead.js/
-                        // ------------------------------------------------------------------------------------
-                        function prepareSettings(options, settings, query) {
-                            if (options.wildcard && query) {
-                                settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
-                            }
+                    //init time picker addon, if time field is available
+                    // https://weareoutman.github.io/clockpicker/
+                    // ------------------------------------------------------------------------------------
+                    var timePickers = [];
+                    if (timeFieldNames.length > 0) {
+                        var timepickerElements = formElem.find(".time");
+                        for (i = 0; i < timeFieldNames.length; i++) {
+                            var clockpicker = $(timepickerElements[i]).clockpicker({
+                                placement: 'bottom',
+                                align: 'left',
+                                autoclose: 'true'
+                            }).find("input").change(function () {
+                                var fieldName = $(this).attr("name");
+                                scope.bindingSource[fieldName] = $(this).val();
+                            });
 
-                            settings.type = options.type ? options.type : 'GET';
-                            settings.contentType = options.contentType;
-                            settings.headers = options.headers;
-
-                            if (query) {
-                                settings.data = JSON.stringify(query);
-                            }
-
-                            return settings;
+                            timePickers.push(clockpicker);
                         }
+                    }
 
+                    // init WYSIWYG Textarea "summernote"
+                    // https://github.com/summernote/summernote
+                    // (old:)http://mindmup.github.io/bootstrap-wysiwyg/
+                    // ------------------------------------------------------------------------------------
+                    var editorPickers = [];
+                    if (wysiwygFieldNames.length > 0) {
+                        var editorPickerElements = formElem.find(".wysiwyg");
+                        for (i = 0; i < wysiwygFieldNames.length; i++) {
+                            var editorpicker = $(editorPickerElements[i]).summernote({
+                                height: 400,
+                                //onblur: function (event) {
+                                //    var bindingName = getBindingName($(this), scope.bindings);
+                                //    var obj = getParentBindingObj(bindingName);
+                                //    obj.parentObj[obj.childName] = $(this).code();
+                                //},
+                                onKeyup: function (event) {
+                                    var bindingName = getBindingName($(this), scope.bindings);
+                                    var obj = getParentBindingObj(bindingName);
+                                    obj.parentObj[obj.childName] = $(this).code();
+                                },
+                                toolbar: [
+                                    ['style', ['bold', 'italic', 'underline', 'strikethrough', 'clear']],
+                                    ['font', ['strikethrough']],
+                                    ['fontsize', ['fontsize']],
+                                    ['color', ['color']],
+                                    ['para', ['ul', 'ol', 'paragraph']],
+                                    ['height', ['height']],
+                                ]
+                            });
 
-                        // here starts the initialization
-                        var typeaheads = [];
-                        var bloodhounds = [];
-                        if (typeaheadFieldNames.length > 0) {
-                            var typeaheadElements = formElem.find(".typeahead");
+                            var fieldName = $(editorPickerElements[i]).attr("name");
+                            editorpicker.code(scope.bindingSource[fieldName]);
 
-                            // create bloodhound options object
-                            // ---------------------------------
-                            function createBloodhoundOptions($elem, elemData){
-                                var bloodhoundOptions = {
-                                    datumTokenizer: elemData.tokens ?
-                                        Bloodhound.tokenizers.obj.whitespace(elemData.tokens) :
-                                        Bloodhound.tokenizers.whitespace,
-                                    queryTokenizer: Bloodhound.tokenizers.whitespace,
-                                };
+                            editorPickers.push(editorpicker);
+                        }
+                    }
 
-                                //add identify function if minLength == 0 is allowed
-                                if (elemData.options.minLength === 0) {
-                                    bloodhoundOptions.identify = function (obj) {
-                                        return obj.id
-                                    };
-                                }
+                    // init TAG input field
+                    // https://github.com/alxlit/bootstrap-chosen
+                    // ------------------------------------------------------------------------------------
+                    var tagFields = [];
+                    if (tagFieldNames.length > 0) {
+                        var tagElements = formElem.find(".tags");
+                        for (i = 0; i < tagFieldNames.length; i++) {
+                            var tagField = $(tagElements[i]).chosen({width: "100%"});
 
-                                // use remote, prefetch oder local data.
-                                if (elemData.remote) {
-                                    bloodhoundOptions.remote = elemData.remote;
-
-                                    if (scope.libraryOptions.typeahead.prepare) {
-                                        bloodhoundOptions.remote.prepare = function (query, settings) {
-                                            var options = scope.libraryOptions.typeahead.prepare;
-                                            return prepareSettings(options, settings, query);
-                                        }
-                                    }
-                                } else if (elemData.prefetch) {
-                                    bloodhoundOptions.prefetch = elemData.prefetch;
-
-                                    if (scope.libraryOptions.typeahead.prepare) {
-                                        bloodhoundOptions.prefetch.prepare = function (settings) {
-                                            var options = scope.libraryOptions.typeahead.prepare;
-                                            return prepareSettings(options, settings);
-                                        }
-                                    }
-                                } else {
-                                    bloodhoundOptions.local = elemData.local;
-                                }
-
-                                return bloodhoundOptions;
-                            }
-
-                            // create optional options for typeahead
-                            // ---------------------------------
-                            function createAdditionalOptions(){
-                                var additonalOptions = {
-                                    name: $elem.attr("name"),
-                                    source: elemData.options.minLength === 0 ? getSearchValOrAllIfKeyIsNull : bloodhounds[$elem.attr("name")] //bloodhound
-                                };
-                                if (elemData.limit) {
-                                    additonalOptions.limit = elemData.limit;
-                                }
-                                if (elemData.async) {
-                                    additonalOptions.async = elemData.async;
-                                }
-                                if (elemData.templateHtml) {
-                                    additonalOptions.templates = getCustomTemplate(elemData.templateHtml)
-                                }
-                                if (elemData.display) {
-                                    additonalOptions.display = getDisplayLayout(elemData.display);
-                                }
-
-                                return additonalOptions;
-                            }
-
-                            // create the different template views
-                            // ---------------------------------
-                            function getCustomTemplate(htmlTpl) {
-                                var template = {};
-                                if (htmlTpl) {
-                                    if (htmlTpl.empty) {
-                                        template.empty = function (data) {
-                                            return htmlTpl.empty;
-                                        }
-                                    }
-
-                                    if (htmlTpl.pending) {
-                                        template.pending = function (data) {
-                                            return htmlTpl.pending;
-                                        }
-                                    }
-
-                                    if (htmlTpl.suggestion) {
-                                        template.suggestion = function (data) {
-                                            return eval(htmlTpl.suggestion);
-                                        }
-                                    }
-
-                                    if (htmlTpl.header) {
-                                        template.header = function (data) {
-                                            return eval(htmlTpl.header);
-                                        }
-                                    }
-
-                                    if (htmlTpl.footer) {
-                                        template.footer = function (data) {
-                                            return eval(htmlTpl.footer);
-                                        }
-                                    }
-                                }
-                                return template;
-                            }
-
-                            // format display values
-                            // ---------------------------------
-                            function getDisplayLayout(display) {
-                                return function (obj) {
-                                    var data = [];
-                                    var view = display.style;
-                                    display.items.forEach(function (item) {
-                                        data[item] = eval("obj." + item);
-                                        view = view.replace(item, data[item]);
+                            tagField.change(function (event, changedObj) {
+                                var fieldName = $(event.currentTarget).attr("name");
+                                var selectedOptions = $(event.currentTarget).find("option:selected");
+                                if (changedObj.selected) {
+                                    selectedOptions.each(function () {
+                                        scope.bindingSource[fieldName].push($(this).val());
                                     });
-
-                                    return view;
-                                }
-                            }
-
-                            // get default values if no search key selected and minLength 0 is allowed
-                            // ---------------------------------
-                            function getSearchValOrAllIfKeyIsNull(q, sync) {
-                                var bloodhound = bloodhounds[$(this).attr("name")];
-                                if (q === '') {
-                                    sync(bloodhound.all());
                                 } else {
-                                    bloodhound.search(q, sync);
+                                    var idx = scope.bindingSource[fieldName].indexOf(changedObj.deselected);
+                                    scope.bindingSource[fieldName].splice(idx, 1);
                                 }
+                            });
+
+                            tagFields.push(tagField);
+                        }
+                    }
+
+                    // typeahead input field
+                    // https://twitter.github.io/typeahead.js/
+                    // ------------------------------------------------------------------------------------
+                    function prepareSettings(options, settings, query) {
+                        if (options.wildcard && query) {
+                            settings.url = settings.url.replace(options.wildcard, encodeURIComponent(query));
+                        }
+
+                        settings.type = options.type ? options.type : 'GET';
+                        settings.contentType = options.contentType;
+                        settings.headers = options.headers;
+
+                        if (query) {
+                            settings.data = JSON.stringify(query);
+                        }
+
+                        return settings;
+                    }
+
+
+                    // here starts the initialization
+                    var typeaheads = [];
+                    var bloodhounds = [];
+                    if (typeaheadFieldNames.length > 0) {
+                        var typeaheadElements = formElem.find(".typeahead");
+
+                        // create bloodhound options object
+                        // ---------------------------------
+                        function createBloodhoundOptions($elem, elemData) {
+                            var bloodhoundOptions = {
+                                datumTokenizer: elemData.tokens ?
+                                    Bloodhound.tokenizers.obj.whitespace(elemData.tokens) :
+                                    Bloodhound.tokenizers.whitespace,
+                                queryTokenizer: Bloodhound.tokenizers.whitespace,
+                            };
+
+                            //add identify function if minLength == 0 is allowed
+                            if (elemData.options.minLength === 0) {
+                                bloodhoundOptions.identify = function (obj) {
+                                    return obj.id
+                                };
                             }
 
-                            // set init value to input field
-                            function setValueToTypeaheadInput($elem, elemData){
-                                function getBindingName(bindings) {
-                                    var curBinding = null;
-                                    bindings.forEach(function (binding) {
-                                        curBinding = binding[$elem.attr("name")];
-                                        if (curBinding) {
-                                            return curBinding;
-                                        }
-                                    });
-                                    return curBinding;
+                            // use remote, prefetch oder local data.
+                            if (elemData.remote) {
+                                bloodhoundOptions.remote = elemData.remote;
+
+                                if (scope.libraryOptions.typeahead.prepare) {
+                                    bloodhoundOptions.remote.prepare = function (query, settings) {
+                                        var options = scope.libraryOptions.typeahead.prepare;
+                                        return prepareSettings(options, settings, query);
+                                    }
+                                }
+                            } else if (elemData.prefetch) {
+                                bloodhoundOptions.prefetch = elemData.prefetch;
+
+                                if (scope.libraryOptions.typeahead.prepare) {
+                                    bloodhoundOptions.prefetch.prepare = function (settings) {
+                                        var options = scope.libraryOptions.typeahead.prepare;
+                                        return prepareSettings(options, settings);
+                                    }
+                                }
+                            } else {
+                                bloodhoundOptions.local = elemData.local;
+                            }
+
+                            return bloodhoundOptions;
+                        }
+
+                        // create optional options for typeahead
+                        // ---------------------------------
+                        function createAdditionalOptions() {
+                            var additonalOptions = {
+                                name: $elem.attr("name"),
+                                source: elemData.options.minLength === 0 ? getSearchValOrAllIfKeyIsNull : bloodhounds[$elem.attr("name")] //bloodhound
+                            };
+                            if (elemData.limit) {
+                                additonalOptions.limit = elemData.limit;
+                            }
+                            if (elemData.async) {
+                                additonalOptions.async = elemData.async;
+                            }
+                            if (elemData.templateHtml) {
+                                additonalOptions.templates = getCustomTemplate(elemData.templateHtml)
+                            }
+                            if (elemData.display) {
+                                additonalOptions.display = getDisplayLayout(elemData.display);
+                            }
+
+                            return additonalOptions;
+                        }
+
+                        // create the different template views
+                        // ---------------------------------
+                        function getCustomTemplate(htmlTpl) {
+                            var template = {};
+                            if (htmlTpl) {
+                                if (htmlTpl.empty) {
+                                    template.empty = function (data) {
+                                        return htmlTpl.empty;
+                                    }
                                 }
 
-                                function getBindingObj(bindingName) {
-                                    var tmp = "scope.bindingSource." + bindingName;
-                                    return eval(tmp);
+                                if (htmlTpl.pending) {
+                                    template.pending = function (data) {
+                                        return htmlTpl.pending;
+                                    }
                                 }
 
-                                var bindingName = getBindingName(scope.bindings);
-                                var bindingObj = getBindingObj(bindingName);
-                                var view = "";
+                                if (htmlTpl.suggestion) {
+                                    template.suggestion = function (data) {
+                                        return eval(htmlTpl.suggestion);
+                                    }
+                                }
 
+                                if (htmlTpl.header) {
+                                    template.header = function (data) {
+                                        return eval(htmlTpl.header);
+                                    }
+                                }
+
+                                if (htmlTpl.footer) {
+                                    template.footer = function (data) {
+                                        return eval(htmlTpl.footer);
+                                    }
+                                }
+                            }
+                            return template;
+                        }
+
+                        // format display values
+                        // ---------------------------------
+                        function getDisplayLayout(display) {
+                            return function (obj) {
+                                var data = [];
+                                var view = display.style;
+                                display.items.forEach(function (item) {
+                                    data[item] = eval("obj." + item);
+                                    view = view.replace(item, data[item]);
+                                });
+
+                                return view;
+                            }
+                        }
+
+                        // get default values if no search key selected and minLength 0 is allowed
+                        // ---------------------------------
+                        function getSearchValOrAllIfKeyIsNull(q, sync) {
+                            var bloodhound = bloodhounds[$(this).attr("name")];
+                            if (q === '') {
+                                sync(bloodhound.all());
+                            } else {
+                                bloodhound.search(q, sync);
+                            }
+                        }
+
+
+                        // set init value to input field
+                        function setValueToTypeaheadInput($elem, elemData) {
+                            var bindingName = getBindingName($elem, scope.bindings);
+                            var obj = getParentBindingObj(bindingName);
+                            var bindingSourceObj = obj.parentObj[obj.childName];
+                            var view = "";
+
+                            if (bindingSourceObj && bindingSourceObj.id) { // only if value is avaiable
                                 if (elemData.display) {
                                     var data = [];
                                     view = elemData.display.style;
                                     elemData.display.items.forEach(function (item) {
-                                        data[item] = bindingObj[item];
+                                        data[item] = bindingSourceObj[item];
                                         view = view.replace(item, data[item]);
                                     });
                                 } else {
-                                    view = bindingObj[elemData.display];
+                                    view = bindingSourceObj[elemData.display];
                                 }
-                                newTypeahead.typeahead('val', view);
                             }
 
-
-                            // create all typeahead objects
-                            for (i = 0; i < typeaheadElements.length; i++) {
-                                var $elem = $(typeaheadElements[i]);
-                                var elemData = $elem.data('elemdata');
-
-                               var bloodhoundOptions = createBloodhoundOptions($elem, elemData);
-
-                                // init the bloodhound engine
-                                bloodhounds[$elem.attr("name")] = new Bloodhound(bloodhoundOptions);
-                                bloodhounds[$elem.attr("name")].initialize();
-
-                                // check if the thumbprint of the cached data is actual
-                                //if (elemData.prefetch && elemData.cache) {
-                                //    $http.get(elemData.cache).then(function (response) {
-                                //        if (response.data.key != bloodhound.prefetch.thumbprint) {
-                                //            bloodhound.prefetch.thumbprint = response.data.key;
-                                //
-                                //            bloodhound.clearPrefetchCache();
-                                //            bloodhound.initialize(true);
-                                //        }
-                                //    });
-                                //}
-
-
-                                // init all configured options
-                                var additonalOptions = createAdditionalOptions();
-
-                                // create typeahead element
-                                var newTypeahead = $elem.typeahead(
-                                    elemData.options ? elemData.options : null, additonalOptions);
-                                typeaheads.push(newTypeahead);
-
-                                // set inital value from scope with correct format
-                               setValueToTypeaheadInput($elem, elemData);
-
-                                // add typeahead event listeners
-                                newTypeahead.bind('typeahead:select', function (e, selectedObject) {
-                                    scope.bindingSource[$(this).attr("name")] = selectedObject;
-                                });
-
-                            }
+                            newTypeahead.typeahead('val', view);
                         }
 
-                        // load plugin css styles
-                        // ------------------------------------------------------------------------------------
-                        if (cssInjector) {
-                            if (colorPickers.length > 0) {
-                                cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
-                            }
-                            if (datePickers.length > 0) {
-                                cssInjector.add("/public/js/lib/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css");
-                            }
-                            if (timePickers.length > 0) {
-                                cssInjector.add("/public/js/lib/clockpicker/dist/bootstrap-clockpicker.min.css");
-                            }
-                            if (tagFields.length > 0) {
-                                cssInjector.add("/public/js/lib/chosen/chosen.css");
-                            }
-                            if (editorPickers.length > 0) {
-                                cssInjector.add("/public/js/lib/summernote/dist/summernote.css");
-                            }
+
+                        // create all typeahead objects
+                        for (i = 0; i < typeaheadElements.length; i++) {
+                            var $elem = $(typeaheadElements[i]);
+                            var elemData = $elem.data('elemdata');
+
+                            var bloodhoundOptions = createBloodhoundOptions($elem, elemData);
+
+                            // init the bloodhound engine
+                            bloodhounds[$elem.attr("name")] = new Bloodhound(bloodhoundOptions);
+                            bloodhounds[$elem.attr("name")].initialize();
+
+                            // check if the thumbprint of the cached data is actual
+                            //if (elemData.prefetch && elemData.cache) {
+                            //    $http.get(elemData.cache).then(function (response) {
+                            //        if (response.data.key != bloodhound.prefetch.thumbprint) {
+                            //            bloodhound.prefetch.thumbprint = response.data.key;
+                            //
+                            //            bloodhound.clearPrefetchCache();
+                            //            bloodhound.initialize(true);
+                            //        }
+                            //    });
+                            //}
+
+
+                            // init all configured options
+                            var additonalOptions = createAdditionalOptions();
+
+                            // create typeahead element
+                            var newTypeahead = $elem.typeahead(
+                                elemData.options ? elemData.options : null, additonalOptions);
+                            typeaheads.push(newTypeahead);
+
+                            // set inital value from scope with correct format
+                            setValueToTypeaheadInput($elem, elemData);
+
+                            // add typeahead event listeners
+                            newTypeahead.bind('typeahead:select', function (e, selectedObject) {
+                                var bindingName = getBindingName($(this), scope.bindings);
+                                var obj = getParentBindingObj(bindingName);
+                                obj.parentObj[obj.childName] = selectedObject;
+                            });
 
                         }
-
-                        // trigger submit from outside handler
-                        $('#' + scope.submitButtonId).on('click', function () {
-                            formElem.trigger('submit');
-                        });
-
-                        // add the new created form to angular scope
-                        var anguElem = element.find('form');
-                        $compile(anguElem.contents())(scope);
                     }
-                    ;
+
+                    // load plugin css styles
+                    // ------------------------------------------------------------------------------------
+                    if (cssInjector) {
+                        if (colorPickers.length > 0) {
+                            cssInjector.add("/public/js/lib/mjolnic-bootstrap-colorpicker/dist/css/bootstrap-colorpicker.min.css");
+                        }
+                        if (datePickers.length > 0) {
+                            cssInjector.add("/public/js/lib/eonasdan-bootstrap-datetimepicker/build/css/bootstrap-datetimepicker.min.css");
+                        }
+                        if (timePickers.length > 0) {
+                            cssInjector.add("/public/js/lib/clockpicker/dist/bootstrap-clockpicker.min.css");
+                        }
+                        if (tagFields.length > 0) {
+                            cssInjector.add("/public/js/lib/chosen/chosen.css");
+                        }
+                        if (editorPickers.length > 0) {
+                            cssInjector.add("/public/js/lib/summernote/dist/summernote.css");
+                        }
+
+                    }
+
+                    // trigger submit from outside handler
+                    $('#' + scope.submitButtonId).on('click', function () {
+                        formElem.trigger('submit');
+                    });
+
+                    // add the new created form to angular scope
+                    var anguElem = element.find('form');
+                    $compile(anguElem.contents())(scope);
+
+                };
+
 
                 init(scope, element, attr);
 
@@ -496,7 +542,6 @@ angular.module("tie-ng", ['angular.css.injector'])
                         init(scope, element, attr);
                     });
                 }
-
             }
         };
     }]);
