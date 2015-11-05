@@ -506,8 +506,8 @@ angular.module("tie-ng", ['angular.css.injector'])
                             });
 
                             // clear Input field on Broadcast
-                            $scope.$on('calendarCtrl.calendar.refetchEvents', function(event, args) {
-                                // TODO: load query typeahead element and set value to ""
+                            scope.$on('tie-ng.typeahead.clearInput', function(event, name) {
+                                $("input[type='typeahead'][name='" + name + "']").val("");
                             });
                         }
                     }

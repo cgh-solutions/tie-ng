@@ -504,6 +504,11 @@ angular.module("tie-ng", ['angular.css.injector'])
                                     $(this).typeahead('val', '');
                                 }
                             });
+
+                            // clear Input field on Broadcast
+                            scope.$on('tie-ng.typeahead.clearInput', function(event, name) {
+                                $("input[type='typeahead'][name='" + name + "']").val("");
+                            });
                         }
                     }
 
